@@ -48,7 +48,7 @@
 
 const GIST_CONFIG = {
   gistId: "9ba71336d9b9045420c50c2003829df0",   // e.g. "1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p"
-  token: "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",    // classic GitHub token with ONLY the "gist" scope
+  token: "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",    // classic GitHub token with ONLY the "gist" scope
   filename: "leaderboard.txt"
 };
 
