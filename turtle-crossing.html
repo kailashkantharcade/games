@@ -398,7 +398,8 @@
       player.y = STARTING_POSITION.y;
       speed *= 0.5;
       document.getElementById('levelValue').textContent = level;
-      window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), level);
+      window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), level)
+        .catch(err => console.warn('Could not submit score to the leaderboard:', err));
       scheduleTick();
     }
   }
@@ -453,7 +454,8 @@
     if(tickHandle) clearInterval(tickHandle);
     document.getElementById('finalLevel').textContent = `You reached Level ${level}.`;
     document.getElementById('gameOverOverlay').classList.remove('hidden');
-    window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), level);
+    window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), level)
+      .catch(err => console.warn('Could not submit score to the leaderboard:', err));
   }
 
   // --- Leaderboard (shared across every visitor via leaderboard.js) ---

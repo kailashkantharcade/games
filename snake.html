@@ -344,12 +344,14 @@
     }
   }
 
-  async function updateHighScore(){
+  function updateHighScore(){
     registerScoreLive();
-    if(score > 0){
-      await window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), score);
+    const finalScore = score;
+    score = 0; // reset right away so the on-screen score updates instantly
+    if(finalScore > 0){
+      window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), finalScore)
+        .catch(err => console.warn('Could not submit score to the leaderboard:', err));
     }
-    score = 0;
   }
 
   function snakeReset(){
