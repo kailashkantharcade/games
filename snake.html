@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snake — Arcade</title>
+<style>
+  :root{
+    --asphalt: #1B1D23;
+    --asphalt-deep: #121319;
+    --lane-yellow: #F4C542;
+    --dusk-purple: #3D2B56;
+    --taillight-red: #E4572E;
+    --headlight-cream: #F6F1E7;
+    --finish-green: #4C9F70;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: radial-gradient(ellipse at top, var(--dusk-purple) 0%, var(--asphalt-deep) 65%);
+    font-family:'Space Mono', monospace;
+    color: var(--headlight-cream);
+    padding: 24px;
+  }
+
+  .cabinet{
+    background: linear-gradient(180deg, #24263066, #14151a99);
+    border: 3px solid #000;
+    border-radius: 18px;
+    padding: 18px 18px 22px;
+    box-shadow: 0 0 0 2px var(--lane-yellow), 0 20px 50px rgba(0,0,0,0.6);
+    max-width: 900px;
+  }
+
+  .marquee{
+    text-align:center;
+    font-family:'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: 6px;
+    color: var(--lane-yellow);
+    text-shadow: 0 0 12px rgba(244,197,66,0.6);
+    margin: 4px 0 14px;
+  }
+
+  .stitching{
+    height: 6px;
+    background-image: repeating-linear-gradient(90deg, var(--lane-yellow) 0 16px, transparent 16px 32px);
+    opacity: 0.8;
+    margin-bottom: 14px;
+    border-radius: 3px;
+  }
+
+  .layout{
+    display:flex;
+    gap: 18px;
+    align-items:flex-start;
+  }
+
+  .screen-wrap{
+    position: relative;
+    border: 10px solid #000;
+    border-radius: 8px;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+    overflow:hidden;
+    line-height:0;
+  }
+
+  /* the game canvas itself stays true to the original turtle look: plain black, no reskin */
+  canvas{
+    display:block;
+    background: #000000;
+  }
+
+  .side-panel{
+    width: 220px;
+    display:flex;
+    flex-direction:column;
+    gap: 14px;
+  }
+
+  .panel-box{
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(244,197,66,0.35);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .panel-label{
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700;
+    letter-spacing: 2px;
+    color: var(--lane-yellow);
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .level-value{
+    font-size: 26px;
+    font-weight:700;
+    color: var(--headlight-cream);
+  }
+
+  .leaderboard-list{
+    list-style: none;
+    margin:0; padding:0;
+    font-size: 13px;
+    max-height: 220px;
+    overflow-y:auto;
+  }
+  .leaderboard-list li{
+    display:flex;
+    justify-content:space-between;
+    padding: 5px 0;
+    border-bottom: 1px dashed rgba(246,241,231,0.15);
+  }
+  .leaderboard-list li:first-child{ color: var(--lane-yellow); font-weight:700; }
+  .rank{ opacity:0.6; margin-right:6px; }
+  .empty-note{ opacity:0.55; font-size:12px; }
+
+  .hint{
+    font-size: 12px;
+    line-height:1.5;
+    opacity:0.8;
+  }
+
+  .overlay{
+    position:absolute; inset:0;
+    background: rgba(10,10,14,0.88);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 14px;
+    text-align:center;
+    padding: 20px;
+  }
+  .overlay h2{
+    font-family:'Rajdhani', sans-serif;
+    letter-spacing: 3px;
+    font-size: 26px;
+    margin:0;
+    color: var(--lane-yellow);
+  }
+  .overlay.hidden{ display:none; }
+
+  .overlay input{
+    font-family:'Space Mono', monospace;
+    background: #0d0e12;
+    border: 1px solid var(--lane-yellow);
+    color: var(--headlight-cream);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    width: 180px;
+    text-align:center;
+  }
+
+  button.arcade-btn{
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700;
+    letter-spacing: 2px;
+    font-size: 15px;
+    background: var(--taillight-red);
+    color: var(--headlight-cream);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    cursor:pointer;
+    box-shadow: 0 3px 0 #8f2e10;
+  }
+  button.arcade-btn:active{ transform: translateY(2px); box-shadow: 0 1px 0 #8f2e10; }
+
+  .dpad{
+    display:none;
+    grid-template-columns: repeat(3, 48px);
+    grid-template-rows: repeat(3, 48px);
+    gap: 6px;
+    justify-content:center;
+    margin-top: 10px;
+  }
+  .dpad button{
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700;
+    font-size:18px;
+    border-radius: 8px;
+    border: none;
+    background: var(--lane-yellow);
+    color: #1B1D23;
+  }
+  .dpad .up{ grid-column:2; grid-row:1; }
+  .dpad .left{ grid-column:1; grid-row:2; }
+  .dpad .right{ grid-column:3; grid-row:2; }
+  .dpad .down{ grid-column:2; grid-row:3; }
+
+  @media (max-width: 720px){
+    .layout{ flex-direction:column; align-items:center; }
+    .side-panel{ width: 100%; max-width: 380px; flex-direction:row; flex-wrap:wrap; }
+    .dpad{ display:grid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cabinet">
+  <a href="index.html" style="display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--headlight-cream);opacity:0.6;text-decoration:none;margin-bottom:6px;">&larr; KAILASH KANTH ARCADE</a>
+  <div class="marquee">SNAKE</div>
+  <div class="stitching"></div>
+
+  <div class="layout">
+    <div class="screen-wrap">
+      <canvas id="game" width="600" height="600"></canvas>
+
+      <div class="overlay" id="startOverlay">
+        <h2>READY?</h2>
+        <div class="hint">Use the arrow keys to steer.<br>Eat the red food to grow.<br>Don't hit the wall or yourself.</div>
+        <input id="nameInputStart" maxlength="16" placeholder="Your name" autocomplete="off">
+        <button class="arcade-btn" id="startBtn">START</button>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-box">
+        <div class="panel-label">HIGH SCORE</div>
+        <div class="level-value" id="highScoreValue">12</div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">LEADERBOARD</div>
+        <ol class="leaderboard-list" id="leaderboardList">
+          <li class="empty-note">Loading...</li>
+        </ol>
+      </div>
+      <div class="panel-box hint">
+        Scores are shared — anyone with this link sees the same board.
+      </div>
+    </div>
+  </div>
+
+  <div class="dpad">
+    <button class="up" data-dir="up">▲</button>
+    <button class="left" data-dir="left">◀</button>
+    <button class="right" data-dir="right">▶</button>
+    <button class="down" data-dir="down">▼</button>
+  </div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const MOVE_DISTANCE = 20;
+  const UP = 90, DOWN = 270, RIGHT = 0, LEFT = 180;
+
+  const GAME_ID = 'snake';
+  const HIGHSCORE_KEY = 'snake:highscore';
+  const DEFAULT_HIGH_SCORE = 0;
+
+  let boxes = [];
+  let heading = RIGHT;
+  let food = { x: 0, y: 0 };
+  let score = 0;
+  let highScore = DEFAULT_HIGH_SCORE;
+  let tickHandle = null;
+  let gameActive = false;
+
+  function worldToCanvas(x, y){
+    return { cx: W/2 + x, cy: H/2 - y };
+  }
+
+  function headingToDelta(h){
+    if(h === RIGHT) return { dx: MOVE_DISTANCE, dy: 0 };
+    if(h === LEFT) return { dx: -MOVE_DISTANCE, dy: 0 };
+    if(h === UP) return { dx: 0, dy: MOVE_DISTANCE };
+    if(h === DOWN) return { dx: 0, dy: -MOVE_DISTANCE };
+  }
+
+  function createSnake(){
+    boxes = [ {x:20,y:0}, {x:0,y:0}, {x:-20,y:0} ];
+    heading = RIGHT;
+  }
+
+  function refreshFood(){
+    food.x = Math.floor(Math.random()*561) - 280; // -280..280
+    food.y = Math.floor(Math.random()*561) - 280;
+  }
+
+  function draw(){
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0,0,W,H);
+
+    // score text, matching original: white Courier, centered near top
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '15px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Score: ${score} High Score: ${highScore}`, W/2, H/2 - 280 + 4);
+
+    // food
+    const f = worldToCanvas(food.x, food.y);
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(f.cx, f.cy, 5, 0, Math.PI*2); // shapesize 0.5 -> ~10px diameter
+    ctx.fill();
+
+    // snake
+    ctx.fillStyle = '#FFFFFF';
+    boxes.forEach(b => {
+      const p = worldToCanvas(b.x, b.y);
+      ctx.fillRect(p.cx - 10, p.cy - 10, 20, 20);
+    });
+  }
+
+  function moveSnake(){
+    for(let i = boxes.length - 1; i > 0; i--){
+      boxes[i] = { x: boxes[i-1].x, y: boxes[i-1].y };
+    }
+    const { dx, dy } = headingToDelta(heading);
+    boxes[0] = { x: boxes[0].x + dx, y: boxes[0].y + dy };
+  }
+
+  function addBox(){
+    const tail = boxes[boxes.length - 1];
+    boxes.push({ x: tail.x, y: tail.y });
+  }
+
+  function distance(a, b){
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function registerScoreLive(){
+    if(score > highScore){
+      highScore = score;
+      try{ localStorage.setItem(HIGHSCORE_KEY, String(highScore)); }catch(e){}
+      document.getElementById('highScoreValue').textContent = highScore;
+    }
+  }
+
+  async function updateHighScore(){
+    registerScoreLive();
+    if(score > 0){
+      await window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), score);
+    }
+    score = 0;
+  }
+
+  function snakeReset(){
+    createSnake();
+  }
+
+  function gameTick(){
+    if(!gameActive) return;
+    moveSnake();
+
+    const head = boxes[0];
+
+    if(distance(head, food) < 15){
+      refreshFood();
+      addBox();
+      score += 1;
+      registerScoreLive();
+    }
+
+    if(head.x > 280 || head.x < -280 || head.y < -280 || head.y > 280){
+      updateHighScore();
+      snakeReset();
+    }
+
+    for(let i = 1; i < boxes.length; i++){
+      if(distance(head, boxes[i]) < 10){
+        updateHighScore();
+        snakeReset();
+        break;
+      }
+    }
+
+    draw();
+  }
+
+  function setDirection(dir){
+    if(!gameActive) return;
+    if(dir === 'up' && heading !== DOWN) heading = UP;
+    else if(dir === 'down' && heading !== UP) heading = DOWN;
+    else if(dir === 'left' && heading !== RIGHT) heading = LEFT;
+    else if(dir === 'right' && heading !== LEFT) heading = RIGHT;
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const map = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right' };
+    if(map[e.key]){
+      e.preventDefault();
+      setDirection(map[e.key]);
+    }
+  });
+
+  document.querySelectorAll('.dpad button').forEach(btn => {
+    btn.addEventListener('click', () => setDirection(btn.dataset.dir));
+  });
+
+  function startGame(){
+    createSnake();
+    refreshFood();
+    score = 0;
+    gameActive = true;
+    draw();
+    if(tickHandle) clearInterval(tickHandle);
+    tickHandle = setInterval(gameTick, 100); // matches time.sleep(0.1) in the original loop
+  }
+
+  // --- Leaderboard (shared across every visitor via leaderboard.js) ---
+  function loadHighScore(){
+    try{
+      const v = localStorage.getItem(HIGHSCORE_KEY);
+      if(v) return parseInt(v, 10);
+    }catch(e){}
+    return DEFAULT_HIGH_SCORE;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderLeaderboard(list){
+    const el = document.getElementById('leaderboardList');
+    el.innerHTML = '';
+    if(!list.length){
+      el.innerHTML = '<li class="empty-note">No scores yet — be the first!</li>';
+      return;
+    }
+    list.slice(0,10).forEach((entry, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span><span class="rank">${i+1}.</span>${escapeHtml(entry.name)}</span><span>${entry.score}</span>`;
+      el.appendChild(li);
+    });
+  }
+
+  // --- Wire up UI ---
+  const startOverlay = document.getElementById('startOverlay');
+  const nameInputStart = document.getElementById('nameInputStart');
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    const name = nameInputStart.value.trim();
+    if(!name){
+      nameInputStart.focus();
+      nameInputStart.style.borderColor = 'var(--taillight-red)';
+      nameInputStart.placeholder = 'Enter your name to play';
+      return;
+    }
+    window.Leaderboard.saveName(name);
+    startOverlay.classList.add('hidden');
+    startGame();
+  });
+
+  (function init(){
+    highScore = loadHighScore();
+    document.getElementById('highScoreValue').textContent = highScore;
+    draw();
+    const savedName = window.Leaderboard.getSavedName();
+    if(savedName) nameInputStart.value = savedName;
+    window.Leaderboard.watchLeaderboard(GAME_ID, renderLeaderboard);
+  })();
+
+})();
+</script>
+</body>
+</html>

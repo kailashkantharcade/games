@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Turtle Crossing — Arcade</title>
+<style>
+  :root{
+    --asphalt: #1B1D23;
+    --asphalt-deep: #121319;
+    --lane-yellow: #F4C542;
+    --dusk-purple: #3D2B56;
+    --taillight-red: #E4572E;
+    --headlight-cream: #F6F1E7;
+    --finish-green: #4C9F70;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: radial-gradient(ellipse at top, var(--dusk-purple) 0%, var(--asphalt-deep) 65%);
+    font-family:'Space Mono', monospace;
+    color: var(--headlight-cream);
+    padding: 24px;
+  }
+
+  .cabinet{
+    background: linear-gradient(180deg, #24263066, #14151a99);
+    border: 3px solid #000;
+    border-radius: 18px;
+    padding: 18px 18px 22px;
+    box-shadow: 0 0 0 2px var(--lane-yellow), 0 20px 50px rgba(0,0,0,0.6);
+    max-width: 900px;
+  }
+
+  .marquee{
+    text-align:center;
+    font-family:'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: 6px;
+    color: var(--lane-yellow);
+    text-shadow: 0 0 12px rgba(244,197,66,0.6);
+    margin: 4px 0 14px;
+  }
+
+  .stitching{
+    height: 6px;
+    background-image: repeating-linear-gradient(90deg, var(--lane-yellow) 0 16px, transparent 16px 32px);
+    opacity: 0.8;
+    margin-bottom: 14px;
+    border-radius: 3px;
+  }
+
+  .layout{
+    display:flex;
+    gap: 18px;
+    align-items:flex-start;
+  }
+
+  .screen-wrap{
+    position: relative;
+    border: 10px solid #000;
+    border-radius: 8px;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+    overflow:hidden;
+    line-height:0;
+  }
+
+  canvas{
+    display:block;
+    background: var(--asphalt);
+  }
+
+  .side-panel{
+    width: 220px;
+    display:flex;
+    flex-direction:column;
+    gap: 14px;
+  }
+
+  .panel-box{
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(244,197,66,0.35);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .panel-label{
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700;
+    letter-spacing: 2px;
+    color: var(--lane-yellow);
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .level-value{
+    font-size: 30px;
+    font-weight:700;
+    color: var(--headlight-cream);
+  }
+
+  .leaderboard-list{
+    list-style: none;
+    margin:0; padding:0;
+    font-size: 13px;
+    max-height: 260px;
+    overflow-y:auto;
+  }
+  .leaderboard-list li{
+    display:flex;
+    justify-content:space-between;
+    padding: 5px 0;
+    border-bottom: 1px dashed rgba(246,241,231,0.15);
+  }
+  .leaderboard-list li:first-child{ color: var(--lane-yellow); font-weight:700; }
+  .rank{ opacity:0.6; margin-right:6px; }
+  .empty-note{ opacity:0.55; font-size:12px; }
+
+  .hint{
+    font-size: 12px;
+    line-height:1.5;
+    opacity:0.8;
+  }
+
+  .overlay{
+    position:absolute; inset:0;
+    background: rgba(10,10,14,0.88);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 14px;
+    text-align:center;
+    padding: 20px;
+  }
+  .overlay h2{
+    font-family:'Rajdhani', sans-serif;
+    letter-spacing: 3px;
+    font-size: 26px;
+    margin:0;
+    color: var(--lane-yellow);
+  }
+  .overlay.hidden{ display:none; }
+
+  .overlay input{
+    font-family:'Space Mono', monospace;
+    background: #0d0e12;
+    border: 1px solid var(--lane-yellow);
+    color: var(--headlight-cream);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    width: 180px;
+    text-align:center;
+  }
+
+  button.arcade-btn{
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700;
+    letter-spacing: 2px;
+    font-size: 15px;
+    background: var(--taillight-red);
+    color: var(--headlight-cream);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    cursor:pointer;
+    box-shadow: 0 3px 0 #8f2e10;
+  }
+  button.arcade-btn:active{ transform: translateY(2px); box-shadow: 0 1px 0 #8f2e10; }
+  button.arcade-btn.secondary{ background: var(--finish-green); box-shadow: 0 3px 0 #2f6b47; }
+
+  .mobile-controls{
+    display:none;
+    justify-content:center;
+    margin-top: 10px;
+  }
+  .mobile-controls button{
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700;
+    font-size:16px;
+    padding: 14px 34px;
+    border-radius: 10px;
+    border: none;
+    background: var(--lane-yellow);
+    color: #1B1D23;
+  }
+
+  @media (max-width: 720px){
+    .layout{ flex-direction:column; align-items:center; }
+    .side-panel{ width: 100%; max-width: 380px; flex-direction:row; flex-wrap:wrap; }
+    .mobile-controls{ display:flex; width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cabinet">
+  <a href="index.html" style="display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--headlight-cream);opacity:0.6;text-decoration:none;margin-bottom:6px;">&larr; KAILASH KANTH ARCADE</a>
+  <div class="marquee">TURTLE CROSSING</div>
+  <div class="stitching"></div>
+
+  <div class="layout">
+    <div class="screen-wrap">
+      <canvas id="game" width="600" height="600"></canvas>
+
+      <div class="overlay" id="startOverlay">
+        <h2>READY TO CROSS?</h2>
+        <div class="hint">Press ↑ to hop forward.<br>Reach the top to level up.<br>Don't get flattened by traffic.</div>
+        <input id="nameInputStart" maxlength="16" placeholder="Your name" autocomplete="off">
+        <button class="arcade-btn" id="startBtn">START CROSSING</button>
+      </div>
+
+      <div class="overlay hidden" id="gameOverOverlay">
+        <h2>GAME OVER</h2>
+        <div id="finalLevel" class="hint"></div>
+        <button class="arcade-btn" id="retryBtn">RETRY</button>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-box">
+        <div class="panel-label">LEVEL</div>
+        <div class="level-value" id="levelValue">1</div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">LEADERBOARD</div>
+        <ol class="leaderboard-list" id="leaderboardList">
+          <li class="empty-note">Loading...</li>
+        </ol>
+      </div>
+      <div class="panel-box hint">
+        Scores are shared — anyone with this link sees the same board.
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-controls">
+    <button id="tapMoveBtn">▲ HOP</button>
+  </div>
+</div>
+
+<script src="leaderboard.js"></script>
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const COLORS = ['#E4572E','#F4C542','#F2E94E','#4C9F70','#4C7CF4','#9B5DE5'];
+  const STARTING_MOVE_DISTANCE = 5;
+  const PLAYER_MOVE_DISTANCE = 10;
+  const FINISH_LINE_Y = 280;
+  const STARTING_POSITION = { x: 0, y: -280 };
+
+  const GAME_ID = 'turtle-crossing';
+
+  let player = { x: STARTING_POSITION.x, y: STARTING_POSITION.y };
+  let cars = [];
+  let level = 1;
+  let speed = 0.1; // seconds between ticks, mirrors the original CarManager.speed
+  let tickHandle = null;
+  let gameActive = false;
+
+  function worldToCanvas(x, y){
+    return { cx: W/2 + x, cy: H/2 - y };
+  }
+
+  function drawBackground(){
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--asphalt');
+    ctx.fillRect(0,0,W,H);
+
+    // center dashed lane line
+    ctx.strokeStyle = 'rgba(244,197,66,0.55)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([18,16]);
+    ctx.beginPath();
+    ctx.moveTo(W/2, 0);
+    ctx.lineTo(W/2, H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // finish line band
+    const { cy } = worldToCanvas(0, FINISH_LINE_Y);
+    ctx.fillStyle = 'rgba(76,159,112,0.9)';
+    ctx.fillRect(0, cy - 6, W, 12);
+    ctx.fillStyle = 'rgba(246,241,231,0.85)';
+    for(let i=0;i<W;i+=24){
+      ctx.fillRect(i, cy-6, 12, 12);
+    }
+  }
+
+  function drawCar(car){
+    const { cx, cy } = worldToCanvas(car.x, car.y);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = car.color;
+    roundRect(ctx, -20, -10, 40, 20, 4);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    roundRect(ctx, -8, -7, 14, 14, 3);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlayer(){
+    const { cx, cy } = worldToCanvas(player.x, player.y);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.shadowColor = 'rgba(76,159,112,0.7)';
+    ctx.shadowBlur = 10;
+
+    // facing up the screen, like turtle.shape('turtle') with heading 90
+    // back legs
+    ctx.fillStyle = '#3E7D57';
+    ctx.beginPath(); ctx.ellipse(-9, 9, 5, 4, -0.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(9, 9, 5, 4, 0.4, 0, Math.PI*2); ctx.fill();
+    // front legs
+    ctx.beginPath(); ctx.ellipse(-9, -6, 5, 4, 0.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(9, -6, 5, 4, -0.4, 0, Math.PI*2); ctx.fill();
+    // tail
+    ctx.beginPath(); ctx.moveTo(-3, 13); ctx.lineTo(3, 13); ctx.lineTo(0, 19); ctx.closePath(); ctx.fill();
+    // head
+    ctx.beginPath(); ctx.ellipse(0, -14, 4.5, 5.5, 0, 0, Math.PI*2); ctx.fill();
+
+    ctx.shadowBlur = 0;
+    // shell
+    ctx.fillStyle = '#4C9F70';
+    ctx.beginPath(); ctx.ellipse(0, 0, 11, 14, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(27,29,35,0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // shell plates
+    ctx.strokeStyle = 'rgba(27,29,35,0.3)';
+    ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(0,14); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, -5, 8, 5, 0, Math.PI, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 6, 8, 5, 0, 0, Math.PI); ctx.stroke();
+
+    ctx.restore();
+  }
+
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function draw(){
+    drawBackground();
+    cars.forEach(drawCar);
+    drawPlayer();
+  }
+
+  function maybeSpawnCar(){
+    const chance = Math.floor(Math.random()*6) + 1; // 1..6
+    if(chance === 1){
+      cars.push({
+        x: 300,
+        y: Math.floor(Math.random()*501) - 250, // -250..250
+        color: COLORS[Math.floor(Math.random()*COLORS.length)]
+      });
+    }
+  }
+
+  function moveCars(){
+    cars.forEach(c => c.x -= STARTING_MOVE_DISTANCE);
+    cars = cars.filter(c => c.x > -320);
+  }
+
+  function checkCollisions(){
+    for(const c of cars){
+      const d = Math.hypot(c.x - player.x, c.y - player.y);
+      if(d < 20){
+        endGame();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function checkFinish(){
+    if(player.y > FINISH_LINE_Y){
+      level += 1;
+      player.x = STARTING_POSITION.x;
+      player.y = STARTING_POSITION.y;
+      speed *= 0.5;
+      document.getElementById('levelValue').textContent = level;
+      window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), level);
+      scheduleTick();
+    }
+  }
+
+  function gameTick(){
+    if(!gameActive) return;
+    maybeSpawnCar();
+    moveCars();
+    draw();
+    if(checkCollisions()) return;
+    checkFinish();
+  }
+
+  function scheduleTick(){
+    if(tickHandle) clearInterval(tickHandle);
+    const delay = Math.max(speed*1000, 15);
+    tickHandle = setInterval(gameTick, delay);
+  }
+
+  function movePlayer(){
+    if(!gameActive) return;
+    player.y += PLAYER_MOVE_DISTANCE;
+    draw();
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowUp'){
+      if(e.repeat) return; // ignore auto-repeat from holding the key down
+      e.preventDefault();
+      movePlayer();
+    }
+  });
+  document.getElementById('tapMoveBtn').addEventListener('click', movePlayer);
+
+  function resetState(){
+    player = { x: STARTING_POSITION.x, y: STARTING_POSITION.y };
+    cars = [];
+    level = 1;
+    speed = 0.1;
+    document.getElementById('levelValue').textContent = level;
+  }
+
+  function startGame(){
+    resetState();
+    gameActive = true;
+    draw();
+    scheduleTick();
+  }
+
+  function endGame(){
+    gameActive = false;
+    if(tickHandle) clearInterval(tickHandle);
+    document.getElementById('finalLevel').textContent = `You reached Level ${level}.`;
+    document.getElementById('gameOverOverlay').classList.remove('hidden');
+    window.Leaderboard.submitScore(GAME_ID, window.Leaderboard.getSavedName(), level);
+  }
+
+  // --- Leaderboard (shared across every visitor via leaderboard.js) ---
+  function renderLeaderboard(list){
+    const el = document.getElementById('leaderboardList');
+    el.innerHTML = '';
+    if(!list.length){
+      el.innerHTML = '<li class="empty-note">No scores yet — be the first!</li>';
+      return;
+    }
+    list.slice(0,10).forEach((entry, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span><span class="rank">${i+1}.</span>${escapeHtml(entry.name)}</span><span>Lv ${entry.score}</span>`;
+      el.appendChild(li);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // --- Wire up UI ---
+  const startOverlay = document.getElementById('startOverlay');
+  const gameOverOverlay = document.getElementById('gameOverOverlay');
+  const nameInputStart = document.getElementById('nameInputStart');
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    const name = nameInputStart.value.trim();
+    if(!name){
+      nameInputStart.focus();
+      nameInputStart.style.borderColor = 'var(--taillight-red)';
+      nameInputStart.placeholder = 'Enter your name to play';
+      return;
+    }
+    window.Leaderboard.saveName(name);
+    startOverlay.classList.add('hidden');
+    startGame();
+  });
+
+  document.getElementById('retryBtn').addEventListener('click', () => {
+    gameOverOverlay.classList.add('hidden');
+    startGame();
+  });
+
+  // init
+  (function init(){
+    draw();
+    const savedName = window.Leaderboard.getSavedName();
+    if(savedName) nameInputStart.value = savedName;
+    window.Leaderboard.watchLeaderboard(GAME_ID, renderLeaderboard);
+  })();
+
+})();
+</script>
+</body>
+</html>
